@@ -48,14 +48,12 @@ func (c *command) Execute(w http.ResponseWriter) (int, error) {
 	// 3. Wrap writer with one that flushes on every write.
 	// Possible enhancement: option to kill process on client disnconnect. Do not want to enable by default
 	// because a webhook may want to be "fire and forget"
-	haveLock := false
 	if !c.AllowConcurrent {
 		//try lock
 		select {
 		case c.lock <- true:
-			haveLock = true
 		default:
-			return 400, fmt.Errorf("Already running")
+			return http.StatusConflict, fmt.Errorf("Already running")
 		}
 	}
 
@@ -83,7 +81,6 @@ Loop:
 				fmt.Fprintf(w, "failed to kill: ", err)
 				break Loop
 			}
-			<-done // allow goroutine to exit
 			fmt.Fprintf(w, "Timeout. Killed.\n")
 			break Loop
 		case err := <-done:
@@ -95,7 +92,7 @@ Loop:
 		fmt.Fprint(w, "\n")
 	}
 
-	if haveLock {
+	if !c.AllowConcurrent {
 		<-c.lock
 	}
 	return 200, nil
