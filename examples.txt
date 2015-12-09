@@ -1,0 +1,27 @@
+#SECURITY WARNING: Should probably only use over HTTPS with basic auth enabled
+#If using with a public service to trigger, I'd suggest long, unguessable paths and https only,
+#or others will be able to trigger actions
+
+#command output (stdout and stderr both) will be streamed over the request.
+
+#POST to /foo executes poke.sh from site root
+cmd /foo poke.sh
+
+#POST to /bar executes absolute path script with args
+cmd /bar /opt/foo/whatever -s foo
+
+cmd /baz {
+	#multiple sequential commands
+	exec docker pull whatever/foo
+	exec docker docker stop foo
+	exec docker rm foo
+	exec docker run --name foo -p 127.0.0.1:5050:5050 whatever/foo
+}
+
+cmd /baaASFAFAAKLJEEKGSDKMVSKVMLGK {
+	# simple web ui. Define this once for all actions. Defining in multiple blocks is an error
+	ui /actions
+	exec pwd 
+	method GET
+	timeout 1m
+}

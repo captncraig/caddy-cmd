@@ -1,0 +1,8 @@
+http://localhost:8787 {
+	cmd /foo ls
+	cmd /bar ls -la
+	cmd /ping ping google.com {
+		method GET
+		timeout 15s
+	}
+}

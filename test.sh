@@ -1,0 +1,1 @@
+caddydev -s $GOPATH/src/github.com/captncraig/caddy-cmd cmd -log stdout -conf testSite/Caddyfile -root testSite
