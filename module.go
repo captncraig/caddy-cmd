@@ -58,11 +58,13 @@ func (c *command) Execute(w http.ResponseWriter) (int, error) {
 			return 400, fmt.Errorf("Already running")
 		}
 	}
-	w.Header().Add("Content-Type", "text/html")
+
 	fw := flushWriter{w: w}
 	if f, ok := w.(http.Flusher); ok {
 		fw.f = f
 	}
+	// maybe only do this if we decide they are a browser
+	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprint(w, "<pre>")
 Loop:
 	for _, exe := range c.Execs {
