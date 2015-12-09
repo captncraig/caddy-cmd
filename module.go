@@ -46,7 +46,7 @@ func (c *command) Execute(w http.ResponseWriter) (int, error) {
 	// 1. Ensures only one request at a time can execute command unless multiple is set.
 	// 2. Run command with timeout. Kill after timeout.
 	// 3. Wrap writer with one that flushes on every write.
-	// Possible enhancement: option to kill process on client disnconnect. Do not want to enable by default
+	// Possible enhancement: option to kill process on client disconnect. Do not want to enable by default
 	// because a webhook may want to be "fire and forget"
 	if !c.AllowConcurrent {
 		//try lock
