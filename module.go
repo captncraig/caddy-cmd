@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,8 @@ import (
 
 type cmdModule struct {
 	next     middleware.Handler
-	commands []*command
+	root     string
+	Commands []*command
 	uiPath   string
 }
 
@@ -28,20 +30,29 @@ type command struct {
 }
 
 type ex struct {
-	command string
-	args    []string
+	Command string
+	Args    []string
 }
 
 func (c *cmdModule) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
-	for _, cmd := range c.commands {
+	if r.URL.Path == c.uiPath {
+		buf := &bytes.Buffer{}
+		if err := tmpl.Execute(buf, c); err != nil {
+			return http.StatusInternalServerError, err
+		}
+		w.Header().Add("Content-Type", "text/html")
+		w.Write(buf.Bytes())
+		return 200, nil
+	}
+	for _, cmd := range c.Commands {
 		if cmd.Method == r.Method && middleware.Path(r.URL.Path).Matches(cmd.Path) {
-			return cmd.Execute(w)
+			return cmd.Execute(w, c.root)
 		}
 	}
 	return c.next.ServeHTTP(w, r)
 }
 
-func (c *command) Execute(w http.ResponseWriter) (int, error) {
+func (c *command) Execute(w http.ResponseWriter, root string) (int, error) {
 	// This looks a bit ugly, but it does a lot of fancy things.
 	// 1. Ensures only one request at a time can execute command unless multiple is set.
 	// 2. Run command with timeout. Kill after timeout.
@@ -66,10 +77,11 @@ func (c *command) Execute(w http.ResponseWriter) (int, error) {
 	fmt.Fprint(w, "<pre>")
 Loop:
 	for _, exe := range c.Execs {
-		fmt.Fprintf(w, "Executing %s %s\n", exe.command, strings.Join(exe.args, " "))
-		cmd := exec.Command(exe.command, exe.args...)
+		fmt.Fprintf(w, "Executing %s %s\n", exe.Command, strings.Join(exe.Args, " "))
+		cmd := exec.Command(exe.Command, exe.Args...)
 		cmd.Stdout = &fw
 		cmd.Stderr = &fw
+		cmd.Dir = root
 		cmd.Start()
 		done := make(chan error, 1)
 		go func() {

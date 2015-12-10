@@ -11,6 +11,7 @@ func Setup(c *setup.Controller) (middleware.Middleware, error) {
 	if err != nil {
 		return nil, err
 	}
+	module.root = c.Root
 	return func(next middleware.Handler) middleware.Handler {
 		module.next = next
 		return module
@@ -31,12 +32,12 @@ func parse(c *setup.Controller) (*cmdModule, error) {
 			Method:          "POST",
 			AllowConcurrent: false,
 		}
-		module.commands = append(module.commands, cmd)
+		module.Commands = append(module.Commands, cmd)
 		if len(args) > 1 {
 			cmd.Execs = []*ex{
 				&ex{
-					command: args[1],
-					args:    args[2:],
+					Command: args[1],
+					Args:    args[2:],
 				},
 			}
 		}
@@ -48,8 +49,8 @@ func parse(c *setup.Controller) (*cmdModule, error) {
 					return nil, c.ArgErr()
 				}
 				exe := &ex{
-					command: args[0],
-					args:    args[1:],
+					Command: args[0],
+					Args:    args[1:],
 				}
 				cmd.Execs = append(cmd.Execs, exe)
 			case "timeout":
@@ -74,6 +75,15 @@ func parse(c *setup.Controller) (*cmdModule, error) {
 					return nil, c.ArgErr()
 				}
 				cmd.Description = args[0]
+			case "ui":
+				args := c.RemainingArgs()
+				if len(args) != 1 {
+					return nil, c.ArgErr()
+				}
+				if module.uiPath != "" {
+					return nil, c.Err("Can only set ui once")
+				}
+				module.uiPath = args[0]
 			case "multiple":
 				args := c.RemainingArgs()
 				if len(args) != 0 {
