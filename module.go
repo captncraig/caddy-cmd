@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ type command struct {
 	Method          string
 	AllowConcurrent bool
 	lock            chan bool
+	shell           bool
 }
 
 type ex struct {
@@ -50,6 +52,14 @@ func (c *cmdModule) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, erro
 		}
 	}
 	return c.next.ServeHTTP(w, r)
+}
+
+var shellCmd = "/bin/bash"
+
+func init() {
+	if c := os.Getenv("SHELL"); c != "" {
+		shellCmd = c
+	}
 }
 
 func (c *command) Execute(w http.ResponseWriter, root string) (int, error) {
@@ -77,8 +87,15 @@ func (c *command) Execute(w http.ResponseWriter, root string) (int, error) {
 	fmt.Fprint(w, "<pre>")
 Loop:
 	for _, exe := range c.Execs {
-		fmt.Fprintf(w, "Executing %s %s\n", exe.Command, strings.Join(exe.Args, " "))
-		cmd := exec.Command(exe.Command, exe.Args...)
+		command := exe.Command
+		args := exe.Args
+		if c.shell {
+			command = shellCmd
+			args = []string{"-c", fmt.Sprintf("%s %s", exe.Command, strings.Join(args, " "))}
+		}
+		fmt.Fprintf(w, "Executing %s %s\n", command, strings.Join(args, " "))
+
+		cmd := exec.Command(command, args...)
 		cmd.Stdout = &fw
 		cmd.Stderr = &fw
 		cmd.Dir = root

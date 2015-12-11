@@ -90,6 +90,12 @@ func parse(c *setup.Controller) (*cmdModule, error) {
 					return nil, c.ArgErr()
 				}
 				cmd.AllowConcurrent = true
+			case "shell":
+				args := c.RemainingArgs()
+				if len(args) != 0 {
+					return nil, c.ArgErr()
+				}
+				cmd.shell = true
 			default:
 				return nil, c.Errf("Invalid cmd args %s", c.Val())
 			}
