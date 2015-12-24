@@ -86,7 +86,10 @@ func (c *command) Execute(w http.ResponseWriter, root string) (int, error) {
 	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprint(w, "<pre>")
 Loop:
-	for _, exe := range c.Execs {
+	for i, exe := range c.Execs {
+		if i != 0 {
+			fmt.Fprint(w, "-------------------\n")
+		}
 		command := exe.Command
 		args := exe.Args
 		if c.shell {
@@ -118,7 +121,6 @@ Loop:
 				break Loop
 			}
 		}
-		fmt.Fprint(w, "\n")
 	}
 
 	if !c.AllowConcurrent {
